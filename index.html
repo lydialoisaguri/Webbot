@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebChatBot</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <input type="text" id="url-input" placeholder="Enter URL">
+    <button onclick="fetchData()">Fetch Data</button>
+    <input type="text" id="query-input" placeholder="Ask a question">
+    <button onclick="askQuestion()">Ask</button>
+    <button onclick="startSpeechRecognition()">Speak</button>
+    <div id="answer"></div>
+    <button id="translate-btn">Translate</button>
+    <select id="language-dropdown">
+        <option value="hi">हिन्दी</option>
+        <option value="te">తెలుగు</option>
+        <option value="ar">العربية</option>
+    </select>
+    <script>
+        function fetchData() {
+            var url = $('#url-input').val();
+            $.post('/fetch', {url: url}, function(data) {
+                if(data.success) {
+                    alert('Data fetched successfully!');
+                }
+            });
+        }
+
+        function askQuestion() {
+            var query = $('#query-input').val();
+            $.post('/ask', {query: query}, function(data) {
+                $('#answer').text(data.answer);
+                textToSpeech(data.answer); // Automatically call TTS for the answer
+            });
+        }
+
+        function startSpeechRecognition() {
+            var recognition = new webkitSpeechRecognition();
+            recognition.onresult = function(event) {
+                var transcript = event.results[0][0].transcript;
+                $('#query-input').val(transcript);
+                askQuestion();
+            }
+            recognition.start();
+        }
+
+        function textToSpeech(text) {
+            $.post('/tts', {text: text}, function(data) {
+                var audio = new Audio(URL.createObjectURL(data));
+                audio.play();
+            });
+        }
+
+        $('#translate-btn').click(function() {
+            var text = $('#answer').text();
+            var lang = $('#language-dropdown').val();
+            $.post('/translate', JSON.stringify({text: text, lang: lang}), function(data) {
+                $('#answer').text(data.translation);
+                textToSpeech(data.translation); // Automatically call TTS for the translation
+            }, 'json');
+        });
+    </script>
+</body>
+</html>
+
